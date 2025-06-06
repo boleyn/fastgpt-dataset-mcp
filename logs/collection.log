@@ -1,0 +1,16 @@
+2025-06-06 16:39:08 - collection - INFO - 开始查看Collection内容 | ID: ITMS技术规范... | 页面大小: 50
+2025-06-06 16:39:08 - collection - INFO - 开始获取collection ITMS技术规范书.md 的所有数据块
+2025-06-06 16:39:08 - collection - ERROR - 查看collection内容失败: HTTP请求失败: 500
+Traceback (most recent call last):
+  File "/Users/boleyn/PycharmProjects/dataset-mcp/src/services/collection_service.py", line 36, in view_collection_content
+    chunks = await self._get_all_chunks(collection_id, page_size)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/boleyn/PycharmProjects/dataset-mcp/src/services/collection_service.py", line 73, in _get_all_chunks
+    chunks, has_more = await self.api_client.get_collection_chunks_page(collection_id, offset, page_size)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/boleyn/PycharmProjects/dataset-mcp/src/api_client.py", line 94, in get_collection_chunks_page
+    result = await self._make_request("POST", endpoint, json_data=json_data)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/boleyn/PycharmProjects/dataset-mcp/src/api_client.py", line 44, in _make_request
+    raise Exception(f"HTTP请求失败: {response.status}")
+Exception: HTTP请求失败: 500
