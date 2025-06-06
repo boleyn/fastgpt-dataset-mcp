@@ -65,7 +65,7 @@ MCP_SERVER_HOST=127.0.0.1 MCP_SERVER_PORT=9000 python main.py --parent-id=你的
 **示例:**
 ```json
 {
-  "question": "亚信科技的主要产品有哪些？",
+  "question": "**科技的主要产品有哪些？",
   "dataset_ids": ["数据集ID1", "数据集ID2"],
   "max_docs": 5,
   "max_search_results": 20
