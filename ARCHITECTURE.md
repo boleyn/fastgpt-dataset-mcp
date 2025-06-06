@@ -104,7 +104,7 @@ collection_info = await self.get_collection_info(collection_id)
 
 **现在**: 使用detail接口获取详细信息，包括准确的文件名
 ```python
-# 新接口返回: "name": "亚信国际2025产品手册V3.10402.pdf"
+# 新接口返回: "name": "**国际2025产品手册V3.10402.pdf"
 collection_detail = await self.api_client.get_collection_detail(collection_id)
 ```
 

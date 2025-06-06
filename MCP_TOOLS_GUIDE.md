@@ -32,7 +32,7 @@
 
 ```json
 {
-  "question": "亚信数字化产品都有哪些，各自的优势和应用场景是什么？",
+  "question": "**数字化产品都有哪些，各自的优势和应用场景是什么？",
   "available_datasets": ["683e8f11d635908ed3368af2"],
   "generate_answer": true
 }
@@ -78,7 +78,7 @@
 
 ```json
 {
-  "search_value": "亚信",
+  "search_value": "**",
   "deep": 4
 }
 ```
@@ -125,7 +125,7 @@
 {
   "tool": "intelligent_search_and_answer",
   "parameters": {
-    "question": "亚信科技在5G领域的核心技术优势、产品布局和市场竞争力如何？",
+    "question": "**科技在5G领域的核心技术优势、产品布局和市场竞争力如何？",
     "available_datasets": ["683e8f11d635908ed3368af2"],
     "generate_answer": true
   }

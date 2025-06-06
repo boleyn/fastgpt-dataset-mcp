@@ -43,7 +43,7 @@ async def get_kb_tree(search_value: str = "", deep: int = 4) -> str:
     用于了解知识库的组织架构，找到相关的数据集ID用于后续搜索。
     
     参数:
-        - search_value: 过滤关键词（可选），支持多关键词空格分隔，如"亚信 IPOSS"或"网络管理 系统"
+        - search_value: 过滤关键词（可选），支持多关键词空格分隔，如"** IPOSS"或"网络管理 系统"
         - deep: 目录深度（1-10，默认4）
     
     返回: 包含数据集ID、名称、类型的目录树结构

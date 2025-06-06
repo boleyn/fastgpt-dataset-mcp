@@ -67,7 +67,7 @@ class KnowledgeBaseTreeRequest(BaseModel):
     """知识库目录树请求参数"""
     search_value: str = Field(
         default="", 
-        description="MongoDB查询条件，用于过滤知识库内容。应使用单个关键词（如'亚信'），不能使用多个空格分隔的词。留空则获取所有内容。"
+        description="MongoDB查询条件，用于过滤知识库内容。应使用单个关键词（如'**'），不能使用多个空格分隔的词。留空则获取所有内容。"
     )
     deep: int = Field(
         default=4, 
