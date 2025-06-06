@@ -7,6 +7,7 @@ from urllib.parse import quote
 from ..api_client import api_client
 from ..models import DataChunk, CollectionInfo
 from ..logger import collection_logger
+from .format_utils import FormatUtils
 
 
 class CollectionService:
@@ -45,21 +46,67 @@ class CollectionService:
                 markdown_content += "*此collection中没有数据块*\n\n"
                 return markdown_content
             
-            # 生成统一的内容文本
-            main_content = self._format_chunks_content(chunks)
+            # 使用统一格式化工具生成文档头部（包含来源信息）
+            header = FormatUtils.format_document_header(
+                title="📄 Collection 完整内容",
+                collection_id=collection_id,
+                source_name=collection_detail.name if collection_detail else "Unknown",
+                download_link=download_link,
+                collection_detail=collection_detail,
+                chunk_count=len(chunks),
+                dataset_id=chunks[0].dataset_id if chunks else None
+            )
             
-            # 构建来源信息
-            source_info = self._format_source_info(collection_id, collection_detail, download_link, chunks)
+            # 生成内容部分
+            content_section = "## 📝 文档内容\n\n" + self._format_chunks_content(chunks)
             
-            # 返回完整内容：主要内容 + 来源信息
-            result = main_content + source_info
+            # 返回完整内容：头部 + 内容
+            result = header + content_section
             
             collection_logger.info(f"Collection内容查看完成 | 总数据块: {len(chunks)}")
             return result
             
         except Exception as e:
-            collection_logger.error(f"查看collection内容失败: {str(e)}", exc_info=True)
-            return f"# 错误\n\n查看collection内容时发生错误: {str(e)}"
+            error_msg = str(e)
+            collection_logger.error(f"查看collection内容失败: {error_msg}", exc_info=True)
+            
+            # 为不同类型的错误提供更友好的信息
+            if "Collection不存在" in error_msg:
+                return f"""# ❌ Collection不存在
+
+**Collection ID:** `{collection_id}`
+
+**错误信息:** Collection不存在，请检查Collection ID是否正确。
+
+**建议解决方案:**
+1. 确认Collection ID是否正确
+2. 使用其他工具查看可用的Collection列表
+3. 联系管理员确认Collection状态
+"""
+            elif "HTTP请求失败: 500" in error_msg:
+                return f"""# ❌ 服务器内部错误
+
+**Collection ID:** `{collection_id}`
+
+**错误信息:** API服务器返回500内部错误
+
+**建议解决方案:**
+1. 稍后重试
+2. 检查API服务器状态
+3. 联系管理员检查服务器日志
+"""
+            else:
+                return f"""# ❌ 查看Collection内容失败
+
+**Collection ID:** `{collection_id}`
+
+**错误信息:** {error_msg}
+
+**建议解决方案:**
+1. 检查网络连接
+2. 确认API配置是否正确
+3. 稍后重试
+"""
     
     async def _get_all_chunks(self, collection_id: str, page_size: int) -> List[DataChunk]:
         """获取collection的所有数据块"""
@@ -116,28 +163,4 @@ class CollectionService:
         
         return '\n'.join(content_lines)
     
-    def _format_source_info(self, collection_id: str, collection_detail: CollectionInfo, 
-                           download_link: str, chunks: List[DataChunk]) -> str:
-        """格式化来源信息"""
-        source_info = "\n\n## 📄 来源信息\n\n"
-        source_info += f"**Collection ID:** `{collection_id}`\n\n"
-        
-        if collection_detail:
-            # 使用新的detail接口获取的准确文件名
-            source_name = collection_detail.name
-            source_info += f"**来源文档:** {source_name}\n\n"
-            source_info += f"**文档类型:** {collection_detail.type}\n\n"
-            
-            # 添加文件大小信息
-            if collection_detail.raw_text_length:
-                source_info += f"**文档大小:** {collection_detail.raw_text_length:,} 字符\n\n"
-            
-            # 添加文件下载链接
-            if download_link:
-                encoded_link = quote(download_link, safe=':/?#[]@!$&\'()*+,;=')
-                source_info += f"**文件链接:** [{source_name}]({encoded_link})\n\n"
-        
-        source_info += f"**总数据块数量:** {len(chunks)}\n\n"
-        source_info += f"**数据集ID:** `{chunks[0].dataset_id if chunks else 'N/A'}`\n\n"
-        
-        return source_info 
+ 

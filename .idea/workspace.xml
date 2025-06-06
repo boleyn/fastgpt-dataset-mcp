@@ -4,22 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="84319276-0310-4a26-bc03-822cd70d0124" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataset-mcp.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.python-version" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/agent_prompt.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config.env.example" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uv.lock" afterDir="false" />
+    <list default="true" id="84319276-0310-4a26-bc03-822cd70d0124" name="更改" comment="初始化">
+      <change beforePath="$PROJECT_DIR$/agent_prompt.md" beforeDir="false" afterPath="$PROJECT_DIR$/agent_prompt.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/analysis.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/analysis.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/api.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/api.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/collection.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/collection.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/server.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/server.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/tree.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/tree.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/collection_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/collection_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/document_analysis_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/document_analysis_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/search_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/search_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/tree_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/tree_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,12 +130,25 @@
       <updated>1736836685805</updated>
       <workItem from="1736836687283" duration="43000" />
       <workItem from="1749091884794" duration="2444000" />
-      <workItem from="1749094486113" duration="7760000" />
+      <workItem from="1749094486113" duration="8374000" />
     </task>
+    <task id="LOCAL-00001" summary="初始化">
+      <option name="closed" value="true" />
+      <created>1749199209458</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1749199209458</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="初始化" />
+    <option name="LAST_COMMIT_MESSAGE" value="初始化" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/dataset_mcp$test_tree.coverage" NAME="test_tree 覆盖结果" MODIFIED="1749094526369" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

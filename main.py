@@ -13,7 +13,7 @@ from fastmcp import FastMCP
 
 # 导入新的架构组件
 from src.config import config
-from src.services import TreeService, SearchService, CollectionService, DocumentAnalysisService
+from src.services import TreeService, SearchService, CollectionService, DocumentAnalysisService, FormatUtils
 
 # 注意：传统工具依赖已移除，部分功能可能不可用
 
@@ -43,12 +43,13 @@ async def get_kb_tree(search_value: str = "", deep: int = 4) -> str:
     用于了解知识库的组织架构，找到相关的数据集ID用于后续搜索。
     
     参数:
-        - search_value: 过滤关键词（可选），用单个词如"亚信"
+        - search_value: 过滤关键词（可选），支持多关键词空格分隔，如"亚信 IPOSS"或"网络管理 系统"
         - deep: 目录深度（1-10，默认4）
     
     返回: 包含数据集ID、名称、类型的目录树结构
     
     💡 使用场景: 在进行文档搜索前，先了解有哪些可用的数据集
+    🔍 搜索增强: 支持多关键词并发搜索，自动去重合并结果
     """
     parent_id = config.get_parent_id()
     return await tree_service.get_knowledge_base_tree(parent_id, search_value, deep)
@@ -302,19 +303,8 @@ async def multi_dataset_search(dataset_ids: List[str], query: str, limit_per_dat
             except Exception as e:
                 results_by_dataset[dataset_id] = []
                 
-        # 格式化结果
-        markdown = f"""# 🔍 多数据集搜索结果
-
-## 📝 搜索查询
-> {query}
-
-## 📊 搜索统计
-- **搜索数据集数量**: {len(dataset_ids)}
-- **总结果数量**: {total_results}
-
-## 🎯 各数据集结果
-
-"""
+        # 使用统一格式化工具生成头部
+        markdown = FormatUtils.format_multi_search_summary(len(dataset_ids), total_results, query)
         
         for dataset_id, results in results_by_dataset.items():
             markdown += f"""### 数据集: {dataset_id[:8]}...
@@ -324,12 +314,32 @@ async def multi_dataset_search(dataset_ids: List[str], query: str, limit_per_dat
             if results:
                 for i, result in enumerate(results[:3], 1):  # 显示前3个结果
                     score = sum(s.get("value", 0) for s in result.score) if result.score else 0
+                    
+                    # 获取文件下载链接和详细信息
+                    try:
+                        download_link = await search_service.api_client.get_file_download_link(result.collection_id)
+                        collection_detail = await search_service.api_client.get_collection_detail(result.collection_id)
+                    except:
+                        download_link = None
+                        collection_detail = None
+                    
                     markdown += f"""#### 结果 {i}
 **内容**: {result.q[:200]}{'...' if len(result.q) > 200 else ''}
 
-**来源**: {result.source_name}
-
 **相关性评分**: {score:.4f}
+
+"""
+                    
+                    # 使用统一格式化工具生成来源信息
+                    source_info = FormatUtils.format_source_info_block(
+                        collection_id=result.collection_id,
+                        source_name=result.source_name,
+                        download_link=download_link,
+                        collection_detail=collection_detail
+                    )
+                    markdown += source_info
+                    
+                    markdown += f"""💡 *可使用Collection ID查看完整文档: `view_collection_content(collection_id="{result.collection_id}")`*
 
 ---
 

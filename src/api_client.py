@@ -34,14 +34,29 @@ class APIClient:
                 params=params,
                 json=json_data
             ) as response:
-                if response.status == 200:
+                # 尝试解析JSON响应，无论状态码如何
+                try:
                     result = await response.json()
-                    if result.get("code") == 200:
-                        return result.get("data", {})
-                    else:
-                        raise Exception(f"API错误: {result.get('message', '未知错误')}")
-                else:
+                except:
+                    # 如果无法解析JSON，返回基本错误信息
                     raise Exception(f"HTTP请求失败: {response.status}")
+                
+                # 处理业务逻辑错误代码
+                if result.get("code") == 200:
+                    return result.get("data", {})
+                elif result.get("code") == 501003:
+                    # Collection不存在的特殊错误
+                    collection_id = json_data.get('collectionId', 'N/A') if json_data else 'N/A'
+                    raise Exception(f"Collection不存在: {collection_id}")
+                else:
+                    # 其他API错误
+                    error_msg = result.get('message', '未知错误')
+                    status_text = result.get('statusText', '')
+                    code = result.get('code', response.status)
+                    if response.status != 200:
+                        raise Exception(f"HTTP请求失败 ({response.status}): {error_msg}")
+                    else:
+                        raise Exception(f"API错误 ({code}): {error_msg} ({status_text})")
     
     async def get_dataset_tree(self, parent_id: str, search_value: str = "", deep: int = 4) -> List[DatasetNode]:
         """获取数据集目录树"""

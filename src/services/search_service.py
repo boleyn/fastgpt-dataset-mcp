@@ -7,6 +7,7 @@ from urllib.parse import quote
 from ..api_client import api_client
 from ..models import SearchResult
 from ..logger import search_logger
+from .format_utils import FormatUtils
 
 
 class SearchService:
@@ -105,33 +106,27 @@ class SearchService:
     
     async def _format_search_results_markdown(self, search_results: List[SearchResult], text: str) -> str:
         """格式化搜索结果为Markdown"""
-        markdown_content = f"# 搜索结果\n\n**搜索关键词:** {text}\n\n**找到 {len(search_results)} 条结果**\n\n"
+        # 头部信息
+        markdown_content = f"# 🔍 搜索结果\n\n**搜索关键词:** {text}\n\n**找到 {len(search_results)} 条结果**\n\n"
         
         for i, result in enumerate(search_results, 1):
-            markdown_content += f"## 结果 {i}\n\n"
-            markdown_content += f"**内容:**\n{result.q}\n\n"
-            
-            if result.a:
-                markdown_content += f"**答案:**\n{result.a}\n\n"
-            
             # 获取文件下载链接
             download_link = await self.api_client.get_file_download_link(result.collection_id)
             
-            markdown_content += f"**来源文档:** {result.source_name}\n\n"
+            # 获取collection详细信息（用于准确的文件名）
+            try:
+                collection_detail = await self.api_client.get_collection_detail(result.collection_id)
+            except:
+                collection_detail = None
             
-            if download_link:
-                # 对URL进行编码以确保markdown链接正确识别
-                encoded_link = quote(download_link, safe=':/?#[]@!$&\'()*+,;=')
-                markdown_content += f"**文件链接:** [{result.source_name}]({encoded_link})\n\n"
+            # 使用统一的格式化工具
+            result_item = FormatUtils.format_search_result_item(
+                result=result,
+                index=i,
+                download_link=download_link,
+                collection_detail=collection_detail
+            )
             
-            # 评分信息
-            markdown_content += "**评分详情:**\n"
-            for score in result.score:
-                score_type = score.get("type", "unknown")
-                score_value = score.get("value", 0)
-                markdown_content += f"- {score_type}: {score_value:.4f}\n"
-            
-            markdown_content += f"\n**Token数量:** {result.tokens}\n\n"
-            markdown_content += "---\n\n"
+            markdown_content += result_item
         
         return markdown_content 

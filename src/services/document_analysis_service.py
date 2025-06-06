@@ -13,6 +13,7 @@ from ..api_client import api_client
 from ..models import SearchResult, DataChunk, CollectionInfo
 from .search_service import SearchService
 from .collection_service import CollectionService
+from .format_utils import FormatUtils
 from ..logger import analysis_logger
 
 
@@ -174,6 +175,7 @@ class DocumentAnalysisService:
                 
                 document_contents.append({
                     'collection_id': collection_id,
+                    'dataset_id': collection_info['dataset_id'],
                     'name': detail.name if detail else collection_info['source_name'],
                     'type': detail.type if detail else 'unknown',
                     'relevance_score': collection_info['relevance_score'],
@@ -255,6 +257,21 @@ class DocumentAnalysisService:
             response_parts.append(content_preview)
             response_parts.append("```")
             response_parts.append("")
+            
+            # 使用统一格式化工具生成来源信息
+            download_link = await self.api_client.get_file_download_link(doc['collection_id'])
+            
+            source_info = FormatUtils.format_source_info_block(
+                collection_id=doc['collection_id'],
+                source_name=doc['name'],
+                download_link=download_link,
+                collection_detail=doc['detail'],
+                dataset_id=doc['dataset_id'],
+                additional_info={'总数据块数量': doc['chunk_count']}
+            )
+            
+            response_parts.append(source_info)
+            
             response_parts.append("---")
             response_parts.append("")
         
