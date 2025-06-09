@@ -75,31 +75,7 @@ tree_service = TreeService()
 search_service = SearchService()
 collection_service = CollectionService()
 
-@mcp.tool("set_parent_id")
-async def set_parent_id(parent_id: str, ctx: Context) -> str:
-    """
-    设置会话级别的parentId
-    
-    Args:
-        parent_id: 要设置的父级目录ID
-    
-    Returns:
-        设置结果确认信息
-    """
-    from src.logger import server_logger
-    
-    if not parent_id or not parent_id.strip():
-        return "❌ parentId不能为空"
-    
-    # 获取会话标识
-    session_id = getattr(ctx, 'client_id', None) or getattr(ctx, 'request_id', None) or 'default'
-    
-    # 设置会话级别的parentId
-    SESSION_PARENT_IDS[session_id] = parent_id.strip()
-    
-    server_logger.info(f"🔑 设置会话parentId: {parent_id[:8]}... (session: {session_id[:8]}...)")
-    
-    return f"✅ 已设置parentId: {parent_id[:8]}... (会话: {session_id[:8]}...)"
+
 
 @mcp.tool("get_dataset_tree")
 async def get_kb_tree(search_value: str = "", deep: int = 4, ctx: Context = None) -> str:
@@ -241,7 +217,6 @@ def main():
     
     # 显示工具信息
     server_logger.info("🛠️  已注册的MCP工具:")
-    server_logger.info("  🔧 set_parent_id - 设置会话级别的parentId")
     server_logger.info("  📁 get_dataset_tree - 获取知识库目录树")
     server_logger.info("  🔍 search_dataset - 单数据集精确搜索")
     server_logger.info("  📄 view_collection_content - 查看文档完整内容")
@@ -252,8 +227,7 @@ def main():
     server_logger.info("🔗 SSE端点: http://0.0.0.0:18007/sse")
     server_logger.info("⚙️  MCP客户端配置:")
     server_logger.info('  "url": "http://0.0.0.0:18007/sse"')
-    server_logger.info("💡 提示: URL参数parentId会自动提取并存储到会话中")
-    server_logger.info("💡 提示: 或使用 set_parent_id 工具动态设置")
+    server_logger.info("💡 提示: URL参数parentId会自动检测变化并更新会话存储")
     server_logger.info("=" * 60)
     
     # 使用FastMCP原生SSE支持
