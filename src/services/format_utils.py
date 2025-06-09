@@ -36,47 +36,43 @@ class FormatUtils:
         info_lines.append("### 📄 来源信息")
         info_lines.append("")
         
-        # Collection ID（必需）
-        info_lines.append(f"**Collection ID:** `{collection_id}`")
-        info_lines.append("")
-        
-        # 来源文档名称
+        # 获取准确的文件名
         if collection_detail and collection_detail.name:
-            # 使用详细信息中的准确名称
             display_name = collection_detail.name
-            info_lines.append(f"**来源文档:** {display_name}")
         else:
-            # 使用传入的名称
-            info_lines.append(f"**来源文档:** {source_name}")
+            display_name = source_name
+        
+        # 文件名（突出显示）
+        info_lines.append(f"**📁 文件名:** {display_name}")
+        
+        # Collection ID（突出显示）
+        info_lines.append(f"**🔗 Collection ID:** `{collection_id}`")
+        
+        # 文件下载链接（突出显示，使用Markdown语法）
+        if download_link:
+            encoded_link = quote(download_link, safe=':/?#[]@!$&\'()*+,;=')
+            info_lines.append(f"**⬇️ 文件下载:** [{display_name}]({encoded_link})")
+        else:
+            info_lines.append(f"**⬇️ 文件下载:** 暂无下载链接")
+        
         info_lines.append("")
         
-        # 文档类型
-        if collection_detail and collection_detail.type:
-            info_lines.append(f"**文档类型:** {collection_detail.type}")
-            info_lines.append("")
-        
-        # 文档大小
-        if collection_detail and collection_detail.raw_text_length:
-            info_lines.append(f"**文档大小:** {collection_detail.raw_text_length:,} 字符")
-            info_lines.append("")
-        
-        # 文件下载链接
-        if download_link:
-            display_name = collection_detail.name if collection_detail and collection_detail.name else source_name
-            encoded_link = quote(download_link, safe=':/?#[]@!$&\'()*+,;=')
-            info_lines.append(f"**文件链接:** [{display_name}]({encoded_link})")
-            info_lines.append("")
+        # 其他详细信息
+        if collection_detail:
+            if collection_detail.type:
+                info_lines.append(f"**📋 文档类型:** {collection_detail.type}")
+            
+            if collection_detail.raw_text_length:
+                info_lines.append(f"**📏 文档大小:** {collection_detail.raw_text_length:,} 字符")
         
         # 数据集ID
         if dataset_id:
-            info_lines.append(f"**数据集ID:** `{dataset_id}`")
-            info_lines.append("")
+            info_lines.append(f"**🗂️ 数据集ID:** `{dataset_id}`")
         
         # 额外信息
         if additional_info:
             for key, value in additional_info.items():
                 info_lines.append(f"**{key}:** {value}")
-                info_lines.append("")
         
         return "\n".join(info_lines)
     

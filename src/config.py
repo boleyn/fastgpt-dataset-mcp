@@ -30,6 +30,9 @@ class Config:
         self.embedding_weight = 0.5
         self.using_rerank = True
         self.rerank_weight = 0.5
+        
+        # 运行时parentId（从SSE URL参数设置）
+        self._runtime_parent_id: Optional[str] = None
     
     @property
     def api_headers(self) -> dict:
@@ -43,10 +46,18 @@ class Config:
             'Connection': 'keep-alive'
         }
     
+    def set_runtime_parent_id(self, parent_id: str) -> None:
+        """设置运行时的parentId（通常从SSE URL参数获取）"""
+        self._runtime_parent_id = parent_id
+    
     def get_parent_id(self, override: Optional[str] = None) -> str:
         """获取父级ID"""
         if override:
             return override
+        
+        # 优先使用运行时设置的parentId（来自SSE URL参数）
+        if self._runtime_parent_id:
+            return self._runtime_parent_id
             
         # 检查命令行参数
         import sys
