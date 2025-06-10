@@ -1,255 +1,259 @@
-# 🧠 知识库管理MCP工具 v2.0
+# 知识库管理MCP服务器 v2.0
 
-基于FastMCP构建的知识库管理工具，支持目录树查看、内容搜索和文档查看功能。
+一个专为 **FastGPT** 设计的知识库管理工具，基于 FastMCP 构建，提供智能的知识库搜索和管理功能。支持自适应查找知识，帮助 AI 助手更好地理解和检索相关信息。
 
-## ✨ 功能亮点
+## 🌟 核心特性
 
-### 🔍 优化的搜索结果格式 (新增)
-**搜索结果包含完整的文档信息**
-- 📁 **文件名**: 显示准确的文档文件名
-- 🔗 **Collection ID**: 提供文档的唯一标识符
-- ⬇️ **文件下载**: 提供Markdown格式的文件下载链接
-- 📋 **文档详情**: 包含文档类型、大小等详细信息
+### 🎯 自适应知识查找
+- **智能关键词扩展**: 自动将核心词扩展为同义词、相关词、上下文词
+- **多层级搜索策略**: 从精确匹配到模糊搜索的渐进式查找
+- **跨数据集并行搜索**: 同时在多个知识库中查找相关信息
+- **深度文件夹探索**: 自动发现深层目录中的知识库资源
 
-### 🔗 SSE URL参数支持
-**支持通过URL参数动态设置parentId**
-- 🌐 支持SSE协议URL参数传递parentId
-- 🎯 工具调用时自动检查URL参数
-- ✅ 简单易用，无需复杂配置
-
-### 🏗️ 全新架构设计
-- 📁 统一API客户端封装所有接口调用
-- 🔧 分层架构设计（配置、模型、服务、工具层）
-- 🎯 新的detail接口获取准确文件名
-- 🛡️ 类型安全的Pydantic模型
-- 📊 统一的日志系统
+### 🔧 丰富的工具集
+- **目录树浏览**: 快速了解知识库结构和可用数据集
+- **精确搜索**: 在指定数据集中进行高精度内容检索
+- **批量搜索**: 跨多个数据集的并行搜索和结果汇总
+- **完整内容查看**: 获取文档的完整内容和详细信息
+- **文件夹深度探索**: 发现和访问嵌套文件夹中的资源
 
 ## 🚀 快速开始
 
-### 启动MCP SSE服务器
+### 1. 安装依赖
+
+本项目使用 `uv` 进行依赖管理：
+
 ```bash
-# 基本启动（使用默认配置）
-python main.py
+# 安装 uv（如果尚未安装）
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 使用环境变量设置parentId
-DEFAULT_PARENT_ID=683462ea7420db05db65b810 python main.py
-
-# 自定义端口和主机
-MCP_SERVER_HOST=127.0.0.1 MCP_SERVER_PORT=9000 python main.py
+# 安装项目依赖
+uv sync
 ```
 
-### MCP客户端配置
-```json
-{
-  "mcpServers": {
-    "knowledge-base": {
-      "type": "sse",
-      "url": "http://localhost:18007/sse?parentId=683462ea7420db05db65b810"
-    }
-  }
-}
-```
+### 2. 配置环境
 
-**重要说明**: 
-- 服务器默认在端口18007提供SSE服务
-- **parentId可通过URL参数传递**：`?parentId=你的ID`
-- 工具调用时会自动检查并应用URL参数中的parentId
-- 支持通过环境变量 `MCP_SERVER_HOST` 和 `MCP_SERVER_PORT` 配置服务器地址
+复制配置文件并根据需要修改：
 
-## 🛠️ 可用工具
-
-### 🔧 set_parent_id
-**设置会话级别的parentId**
-
-动态设置当前会话使用的父级目录ID
-
-**参数:**
-- `parent_id` (必需): 要设置的父级目录ID
-
-### 📁 get_dataset_tree
-**获取知识库目录树**
-
-浏览知识库结构，查看可用数据集
-
-**参数:**
-- `search_value` (可选): 过滤关键词，支持多关键词空格分隔
-- `deep` (可选): 目录深度，默认4
-
-### 🔍 search_dataset
-**单数据集精确搜索**
-
-在指定数据集中搜索相关内容片段，返回包含完整文档信息的结果
-
-**参数:**
-- `dataset_id` (必需): 数据集ID
-- `text` (必需): 搜索关键词
-- `limit` (可选): 结果数量，默认10
-
-**返回格式特点:**
-- 📁 **文件名**: 准确的文档文件名
-- 🔗 **Collection ID**: 文档唯一标识符
-- ⬇️ **文件下载**: Markdown格式的下载链接
-- 📋 **详细信息**: 文档类型、大小等
-
-### 📄 view_collection_content
-**查看文档完整内容**
-
-获取搜索到的文档的完整内容
-
-**参数:**
-- `collection_id` (必需): 文档ID（从搜索结果中获取）
-- `page_size` (可选): 每页数据块数量，默认50
-
-### 🔍 multi_dataset_search
-**多数据集快速搜索**
-
-在多个数据集中同时搜索，返回包含完整文档信息的汇总结果
-
-**参数:**
-- `dataset_ids` (必需): 数据集ID列表
-- `query` (必需): 搜索关键词
-- `limit_per_dataset` (可选): 每个数据集的结果限制，默认5
-
-## 🔧 环境变量配置
-
-复制配置文件：
 ```bash
 cp config.env.example .env
 ```
 
-主要配置项：
-- `DEFAULT_PARENT_ID`: 默认父级目录ID
-- `KNOWLEDGE_BASE_URL`: API基础URL，默认http://10.21.8.6:13000
-- `KNOWLEDGE_BASE_TOKEN`: 认证token
-- `MCP_SERVER_HOST`: 服务器主机，默认0.0.0.0
-- `MCP_SERVER_PORT`: 服务器端口，默认18007
-
-## 🔗 SSE URL参数功能详解
-
-### 使用方法
-
-#### 客户端连接
-```
-http://localhost:18007/sse?parentId=683462ea7420db05db65b810
-```
-
-#### 动态设置parentId
-```bash
-# 使用set_parent_id工具
-{
-  "parent_id": "683462ea7420db05db65b810"
-}
-```
-
-#### 日志输出示例
-```
-🔗 从SSE URL提取并存储parentId: 683462ea...
-🔑 设置会话parentId: 683462ea...
-```
-
-## 🎯 搜索结果格式优化
-
-### 新的搜索结果格式
-
-每个搜索结果现在包含：
-
-```markdown
-## 结果 1
-
-**内容:**
-搜索到的文档内容片段...
-
-**相关性评分:**
-- embedding: 0.8542
-- rerank: 0.7234
-
-**Token数量:** 156
-
-### 📄 来源信息
-
-**📁 文件名:** 产品介绍文档.pdf
-**🔗 Collection ID:** `67890abcdef123456789`
-**⬇️ 文件下载:** [产品介绍文档.pdf](http://example.com/download/file.pdf)
-
-**📋 文档类型:** pdf
-**📏 文档大小:** 15,234 字符
-**🗂️ 数据集ID:** `dataset123456`
-```
-
-### 优化特点
-
-1. **突出显示**: 使用emoji图标突出重要信息
-2. **Markdown链接**: 文件下载使用标准Markdown语法
-3. **完整信息**: 包含所有必要的文档元数据
-4. **统一格式**: 所有搜索工具使用相同的格式标准
-
-## 🚀 项目架构
-
-### 新架构特点
-
-- ✅ **统一API客户端**: 所有HTTP请求都通过统一的客户端处理
-- ✅ **分层架构**: 配置、模型、服务层清晰分离
-- ✅ **优化格式化**: 统一的FormatUtils提供标准化输出格式
-- ✅ **类型安全**: 使用Pydantic模型确保数据类型正确
-- ✅ **配置集中管理**: 所有配置项统一管理
-- ✅ **会话管理**: 支持会话级别的parentId存储
-
-## 📖 使用示例
+在 `.env` 文件中配置您的设置：
 
 ```bash
-# 基本启动
+# 知识库配置
+DEFAULT_PARENT_ID=your-parent-id
+
+# API配置
+API_BASE_URL=http://your-api-domain.com
+API_TOKEN=your-api-token
+
+# MCP服务器配置
+MCP_SERVER_HOST=0.0.0.0
+MCP_SERVER_PORT=18007
+```
+
+### 3. 启动服务器
+
+```bash
+# 使用 uv 运行
+uv run python main.py
+
+# 或者激活虚拟环境后运行
+source .venv/bin/activate  # Linux/Mac
+# 或 .venv\Scripts\activate  # Windows
 python main.py
-
-# 自定义端口启动
-MCP_SERVER_PORT=9000 python main.py
-
-# 使用环境变量设置默认parentId
-DEFAULT_PARENT_ID=你的ID python main.py
 ```
 
-## 🎯 Claude Desktop 配置示例
+服务器将在配置的端口启动（默认 `http://0.0.0.0:18007`），SSE端点为 `http://0.0.0.0:18007/sse`
+
+## 🔗 FastGPT 集成配置
+
+### MCP 客户端配置
+
+在 FastGPT 的 MCP 配置中添加以下设置：
 
 ```json
 {
-  "mcpServers": {
-    "knowledge-base": {
-      "type": "sse", 
-      "url": "http://localhost:18007/sse?parentId=683462ea7420db05db65b810"
-    }
-  }
+  "name": "知识库管理工具",
+  "url": "http://0.0.0.0:18007/sse?parentId=YOUR_PARENT_ID",
+  "description": "智能知识库搜索和管理工具"
 }
 ```
 
-## 🐛 故障排除
+### 🔑 ParentId 配置说明
 
-### SSE URL参数不生效
-**问题**: 通过`?parentId=xxx`传递的参数不生效
+`parentId` 是知识库访问的关键标识符，有两种配置方式：
 
-**解决方案**: 
-1. 确保URL格式正确：`http://localhost:18007/sse?parentId=你的ID`
-2. 调用任何工具时会自动检查URL参数
-3. 或使用`set_parent_id`工具动态设置
-4. 查看服务器日志确认参数是否被正确解析
-
-**日志示例**:
+#### 方式1: URL参数配置（推荐）
+在 MCP 配置的 URL 中直接指定：
 ```
-🔗 从SSE URL提取并存储parentId: 683462ea...
-🔑 使用会话存储的parentId: 683462ea...
+http://0.0.0.0:18007/sse?parentId=your-specific-parent-id
 ```
 
-### 搜索结果格式问题
-**问题**: 搜索结果缺少文件下载链接或collectionId
+#### 方式2: 默认配置
+在 `.env` 文件中设置默认值：
+```bash
+DEFAULT_PARENT_ID=your-default-parent-id
+```
 
-**解决方案**:
-1. 确保使用最新版本的工具
-2. 所有搜索工具现在都包含完整的文档信息
-3. 如果下载链接显示"暂无下载链接"，说明该文档不支持下载
+**智能切换机制**:
+- 系统会自动检测 URL 中的 `parentId` 参数变化
+- 支持会话级别的 `parentId` 存储和管理
+- 当 URL 参数变化时，自动更新当前会话的知识库访问权限
 
-## 📝 更新日志
+## 🛠️ 可用工具
 
-### v2.0 主要更新
-- ✅ 优化搜索结果格式，突出显示collectionId、文件名和下载链接
-- ✅ 移除暂时不可用的智能分析功能
-- ✅ 清理无用的代码和依赖
-- ✅ 更新文档和使用说明
-- ✅ 统一格式化工具，确保所有搜索结果格式一致
+### 1. 📁 get_dataset_tree
+获取知识库目录树，浏览所有可用的数据集和文件夹。
+
+```python
+# 基础用法
+get_dataset_tree()
+
+# 带过滤的用法
+get_dataset_tree(search_value="网络管理 系统", deep=6)
+```
+
+### 2. 🔍 search_dataset
+在指定数据集中进行精确搜索。
+
+```python
+search_dataset(
+    dataset_id="dataset-123",
+    text="用户权限管理",
+    limit=10
+)
+```
+
+### 3. 🔍 multi_dataset_search
+跨多个数据集的并行搜索。
+
+```python
+multi_dataset_search(
+    dataset_ids=["dataset-1", "dataset-2", "dataset-3"],
+    query="系统配置",
+    limit_per_dataset=5
+)
+```
+
+### 4. 📄 view_collection_content
+查看文档的完整内容。
+
+```python
+view_collection_content(
+    collection_id="collection-456",
+    page_size=50
+)
+```
+
+### 5. 🎯 expand_search_keywords
+智能关键词扩展，提升搜索效果。
+
+```python
+expand_search_keywords(
+    original_query="用户管理",
+    expansion_type="comprehensive"
+)
+```
+
+### 6. 📂 explore_folder_contents
+深入探索文件夹内容，发现嵌套资源。
+
+```python
+explore_folder_contents(
+    folder_id="folder-789",
+    search_value="配置文档",
+    deep=8
+)
+```
+
+## 🧠 智能搜索策略
+
+### 自适应查找流程
+
+1. **关键词扩展**: 使用 `expand_search_keywords` 生成相关词汇
+2. **目录探索**: 通过 `get_dataset_tree` 发现相关数据集
+3. **精确搜索**: 使用 `search_dataset` 在目标数据集中搜索
+4. **批量搜索**: 通过 `multi_dataset_search` 扩大搜索范围
+5. **深度查看**: 使用 `view_collection_content` 获取完整信息
+
+### 最佳实践
+
+```python
+# 1. 首先扩展关键词
+expanded = expand_search_keywords("用户权限", "comprehensive")
+
+# 2. 探索相关数据集
+tree = get_dataset_tree("用户 权限 管理", deep=5)
+
+# 3. 多数据集并行搜索
+results = multi_dataset_search(
+    dataset_ids=["found-dataset-1", "found-dataset-2"],
+    query="用户权限管理配置",
+    limit_per_dataset=8
+)
+
+# 4. 查看详细内容
+content = view_collection_content("relevant-collection-id")
+```
+
+## 📊 功能特点
+
+### 🎯 智能化
+- 自动关键词扩展和语义理解
+- 渐进式搜索策略，从精确到模糊
+- 智能结果排序和相关性评分
+
+### ⚡ 高性能
+- 并行搜索多个数据集
+- 异步处理提升响应速度
+- 智能缓存和会话管理
+
+### 🔧 易用性
+- 统一的API接口设计
+- 详细的错误提示和日志
+- 灵活的参数配置
+
+### 🛡️ 可靠性
+- 完善的异常处理机制
+- 会话级别的状态管理
+- 自动重试和容错处理
+
+## 📝 日志和调试
+
+服务器提供详细的日志信息，包括：
+- 🔑 ParentId 使用和切换记录
+- 🔍 搜索请求和结果统计
+- ⚡ 性能监控和错误追踪
+- 📊 工具使用情况分析
+
+## 🤝 与 FastGPT 的协同
+
+这个工具专为 FastGPT 设计，提供：
+
+1. **智能知识检索**: 帮助 AI 快速找到相关信息
+2. **上下文理解**: 通过关键词扩展提升理解能力
+3. **多源信息整合**: 跨数据集搜索提供全面视角
+4. **动态知识库切换**: 通过 parentId 灵活访问不同知识库
+
+## 🔧 技术架构
+
+- **框架**: FastMCP (基于 FastAPI)
+- **传输协议**: Server-Sent Events (SSE)
+- **异步处理**: asyncio 并发处理
+- **会话管理**: 基于客户端ID的状态存储
+- **API集成**: RESTful API 客户端
+
+## 📞 支持和反馈
+
+如有问题或建议，请通过以下方式联系：
+- 查看日志文件获取详细错误信息
+- 检查 `.env` 配置文件是否正确
+- 确认 API 连接和 parentId 设置
+- 使用 `uv run python main.py` 启动服务器
+
+---
+
+**让 AI 更智能地管理和检索知识！** 🚀

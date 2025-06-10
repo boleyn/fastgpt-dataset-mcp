@@ -63,7 +63,7 @@ class APIClient:
         endpoint = "/api/core/dataset/list"
         json_data = {
             "parentId": parent_id,
-            "searchValue": search_value,
+            "searchKey": search_value,  # 修正参数名为searchKey
             "deep": deep
         }
         

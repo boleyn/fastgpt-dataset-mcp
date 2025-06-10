@@ -13,7 +13,7 @@ from fastmcp import FastMCP, Context
 
 # 导入新的架构组件
 from src.config import config
-from src.services import TreeService, SearchService, CollectionService, FormatUtils
+from src.services import TreeService, SearchService, CollectionService, FormatUtils, KeywordService
 
 # 会话级别的parentId存储 - 使用session_id作为key
 SESSION_PARENT_IDS = {}
@@ -74,6 +74,7 @@ mcp = FastMCP("知识库管理工具 v2.0")
 tree_service = TreeService()
 search_service = SearchService()
 collection_service = CollectionService()
+keyword_service = KeywordService()
 
 
 
@@ -208,6 +209,51 @@ async def multi_dataset_search(dataset_ids: List[str], query: str, limit_per_dat
     
     return summary
 
+@mcp.tool("expand_search_keywords")
+async def expand_search_keywords(original_query: str, expansion_type: str = "comprehensive", ctx: Context = None) -> str:
+    """
+    智能关键词扩展工具
+    
+    根据原始查询词生成扩展关键词，支持多种扩展策略。
+    用于实现prompt要求的"核心词 → 同义词 → 相关词 → 上下文词"扩展策略。
+    
+    Args:
+        original_query: 原始搜索关键词
+        expansion_type: 扩展类型 (basic/comprehensive/contextual，默认comprehensive)
+    
+    Returns:
+        包含原词、同义词、相关词、上下文词的扩展关键词列表
+    """
+    try:
+        expanded_keywords = await keyword_service.expand_keywords(original_query, expansion_type)
+        return keyword_service.format_expansion_result(original_query, expanded_keywords, expansion_type)
+    except ValueError as e:
+        return f"❌ {str(e)}"
+    except Exception as e:
+        from src.logger import server_logger
+        server_logger.error(f"关键词扩展失败: {e}")
+        return f"❌ 关键词扩展失败: {str(e)}"
+
+
+
+@mcp.tool("explore_folder_contents")
+async def explore_folder_contents(folder_id: str, search_value: str = "", deep: int = 6, ctx: Context = None) -> str:
+    """
+    深入探索文件夹内容
+    
+    当get_dataset_tree返回文件夹时，使用此工具深入探索文件夹内部的所有知识库和子文件夹。
+    支持更深层次的搜索，帮助发现文件夹深处的数据集。
+    
+    Args:
+        folder_id: 文件夹ID（从get_dataset_tree结果中获取）
+        search_value: 搜索关键词（可选），支持多关键词空格分隔
+        deep: 探索深度（1-10，默认6）
+    
+    Returns:
+        包含文件夹内所有知识库和子文件夹的详细报告，以及使用建议
+    """
+    return await tree_service.explore_folder_contents(folder_id, search_value, deep)
+
 def main():
     """主函数"""
     from src.logger import server_logger
@@ -221,6 +267,8 @@ def main():
     server_logger.info("  🔍 search_dataset - 单数据集精确搜索")
     server_logger.info("  📄 view_collection_content - 查看文档完整内容")
     server_logger.info("  🔍 multi_dataset_search - 多数据集快速搜索")
+    server_logger.info("  🎯 expand_search_keywords - 智能关键词扩展")
+    server_logger.info("  📂 explore_folder_contents - 深入探索文件夹内容")
     
     # 启动信息
     server_logger.info("🌐 启动SSE服务器: http://0.0.0.0:18007")
