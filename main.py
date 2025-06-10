@@ -176,10 +176,6 @@ async def multi_dataset_search(dataset_ids: Union[List[str], str], query: str, l
             server_logger.error(f"❌ dataset_ids[{i}] 不是字符串类型: {dataset_id} (类型: {type(dataset_id)})")
             return f"❌ 数据集ID必须是字符串类型"
         
-        if "," in dataset_id:
-            server_logger.error(f"❌ dataset_ids[{i}] 包含逗号: '{dataset_id}'")
-            return f"❌ 数据集ID不能包含逗号: '{dataset_id}'"
-        
         if len(dataset_id.strip()) == 0:
             server_logger.error(f"❌ dataset_ids[{i}] 为空字符串")
             return f"❌ 数据集ID不能为空"
@@ -210,11 +206,6 @@ async def multi_dataset_search(dataset_ids: Union[List[str], str], query: str, l
     async def search_single_dataset(dataset_id: str) -> tuple[str, str]:
         try:
             server_logger.info(f"正在搜索单个数据集: '{dataset_id}' (类型: {type(dataset_id)}, 长度: {len(dataset_id)})")
-            
-            # 验证dataset_id格式
-            if "," in dataset_id:
-                server_logger.error(f"❌ 检测到异常的dataset_id包含逗号: '{dataset_id}'")
-                return dataset_id, f"❌ 数据集ID格式错误: 包含逗号"
             
             result = await search_service.search_knowledge_base(dataset_id, query, limit_per_dataset)
             return dataset_id, result
