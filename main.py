@@ -8,7 +8,7 @@
 
 import os
 import asyncio
-from typing import List
+from typing import List, Union
 from fastmcp import FastMCP, Context
 
 # 导入新的架构组件
@@ -137,7 +137,7 @@ async def view_collection_content_tool(collection_id: str, page_size: int = 50, 
     return await collection_service.view_collection_content(collection_id, page_size)
 
 @mcp.tool("multi_dataset_search")
-async def multi_dataset_search(dataset_ids: List[str], query: str, limit_per_dataset: int = 5, ctx: Context = None) -> str:
+async def multi_dataset_search(dataset_ids: Union[List[str], str], query: str, limit_per_dataset: int = 5, ctx: Context = None) -> str:
     """
     多数据集快速搜索
     
@@ -145,7 +145,7 @@ async def multi_dataset_search(dataset_ids: List[str], query: str, limit_per_dat
     适用于跨数据集的信息收集和比较分析。
     
     Args:
-        dataset_ids: 数据集ID列表
+        dataset_ids: 数据集ID列表或逗号分隔的字符串
         query: 搜索关键词
         limit_per_dataset: 每个数据集的结果数量（1-20，默认5）
     
@@ -153,6 +153,16 @@ async def multi_dataset_search(dataset_ids: List[str], query: str, limit_per_dat
         按数据集分组的搜索结果汇总，包含collectionId、文件名和下载链接
     """
     from src.logger import server_logger
+    
+    # 兼容字符串和数组两种格式
+    if isinstance(dataset_ids, str):
+        # 如果是字符串，按逗号分割并去除空白
+        dataset_ids = [id.strip() for id in dataset_ids.split(",") if id.strip()]
+        server_logger.info(f"检测到字符串格式的dataset_ids，已转换为列表: {dataset_ids}")
+    elif isinstance(dataset_ids, list):
+        # 如果是列表，确保去除空白项
+        dataset_ids = [str(id).strip() for id in dataset_ids if str(id).strip()]
+        server_logger.info(f"检测到列表格式的dataset_ids: {dataset_ids}")
     
     if not dataset_ids:
         return "❌ 请提供至少一个数据集ID"
