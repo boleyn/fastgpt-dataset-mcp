@@ -154,6 +154,9 @@ async def multi_dataset_search(dataset_ids: Union[List[str], str], query: str, l
     """
     from src.logger import server_logger
     
+    # 记录原始输入参数
+    server_logger.info(f"原始dataset_ids参数: {dataset_ids} (类型: {type(dataset_ids)})")
+    
     # 兼容字符串和数组两种格式
     if isinstance(dataset_ids, str):
         # 如果是字符串，按逗号分割并去除空白
@@ -163,6 +166,23 @@ async def multi_dataset_search(dataset_ids: Union[List[str], str], query: str, l
         # 如果是列表，确保去除空白项
         dataset_ids = [str(id).strip() for id in dataset_ids if str(id).strip()]
         server_logger.info(f"检测到列表格式的dataset_ids: {dataset_ids}")
+    else:
+        server_logger.error(f"❌ 不支持的dataset_ids类型: {type(dataset_ids)}")
+        return f"❌ 不支持的dataset_ids参数类型: {type(dataset_ids)}"
+    
+    # 验证每个dataset_id的格式
+    for i, dataset_id in enumerate(dataset_ids):
+        if not isinstance(dataset_id, str):
+            server_logger.error(f"❌ dataset_ids[{i}] 不是字符串类型: {dataset_id} (类型: {type(dataset_id)})")
+            return f"❌ 数据集ID必须是字符串类型"
+        
+        if "," in dataset_id:
+            server_logger.error(f"❌ dataset_ids[{i}] 包含逗号: '{dataset_id}'")
+            return f"❌ 数据集ID不能包含逗号: '{dataset_id}'"
+        
+        if len(dataset_id.strip()) == 0:
+            server_logger.error(f"❌ dataset_ids[{i}] 为空字符串")
+            return f"❌ 数据集ID不能为空"
     
     if not dataset_ids:
         return "❌ 请提供至少一个数据集ID"
@@ -170,11 +190,32 @@ async def multi_dataset_search(dataset_ids: Union[List[str], str], query: str, l
     if not query.strip():
         return "❌ 请提供搜索关键词"
     
+    # 确保limit_per_dataset是整数类型
+    if isinstance(limit_per_dataset, str):
+        try:
+            limit_per_dataset = int(limit_per_dataset)
+            server_logger.info(f"将limit_per_dataset从字符串转换为整数: {limit_per_dataset}")
+        except ValueError:
+            server_logger.error(f"❌ limit_per_dataset不是有效的数字: '{limit_per_dataset}'")
+            return f"❌ limit_per_dataset必须是数字: '{limit_per_dataset}'"
+    
+    # 验证limit_per_dataset范围
+    if not isinstance(limit_per_dataset, int) or limit_per_dataset < 1 or limit_per_dataset > 20:
+        server_logger.error(f"❌ limit_per_dataset超出范围 (1-20): {limit_per_dataset}")
+        return f"❌ limit_per_dataset必须在1-20之间: {limit_per_dataset}"
+    
     server_logger.info(f"开始多数据集搜索 | 数据集数量: {len(dataset_ids)} | 关键词: '{query}' | 每个数据集限制: {limit_per_dataset}")
     
     # 并行搜索多个数据集
     async def search_single_dataset(dataset_id: str) -> tuple[str, str]:
         try:
+            server_logger.info(f"正在搜索单个数据集: '{dataset_id}' (类型: {type(dataset_id)}, 长度: {len(dataset_id)})")
+            
+            # 验证dataset_id格式
+            if "," in dataset_id:
+                server_logger.error(f"❌ 检测到异常的dataset_id包含逗号: '{dataset_id}'")
+                return dataset_id, f"❌ 数据集ID格式错误: 包含逗号"
+            
             result = await search_service.search_knowledge_base(dataset_id, query, limit_per_dataset)
             return dataset_id, result
         except Exception as e:
