@@ -105,14 +105,47 @@ class KeywordService:
         for domain, keywords in self.domain_keywords.items():
             trigger_words = keywords["触发词"]
             
-            # 检查是否包含触发词
+            # 检查是否包含触发词（支持模糊匹配）
             for trigger in trigger_words:
                 if trigger in query_lower:
                     matched_domains.append(domain)
                     server_logger.info(f"识别到业务领域: {domain} (触发词: {trigger})")
                     break
+                # 增加相似词匹配逻辑
+                elif self._is_similar_word(trigger, query_lower):
+                    matched_domains.append(domain)
+                    server_logger.info(f"识别到业务领域: {domain} (相似词匹配: {trigger})")
+                    break
         
         return matched_domains
+    
+    def _is_similar_word(self, word: str, query: str) -> bool:
+        """
+        检查词汇相似性
+        
+        Args:
+            word: 词典中的词汇
+            query: 查询内容
+            
+        Returns:
+            是否相似
+        """
+        # 财务税务相关的相似词匹配
+        similarity_map = {
+            "税务": ["税收", "纳税", "征税", "税法"],
+            "财务": ["财政", "资金", "金融"],
+            "制度": ["政策", "规定", "法规"],
+            "管理": ["监管", "治理", "控制"],
+            "审计": ["审核", "核查", "检查"],
+            "政策": ["制度", "规定", "办法"]
+        }
+        
+        if word in similarity_map:
+            for similar in similarity_map[word]:
+                if similar in query:
+                    return True
+        
+        return False
     
     async def expand_keywords(self, original_query: str, expansion_type: str = "comprehensive") -> Dict[str, List[str]]:
         """
@@ -148,6 +181,13 @@ class KeywordService:
         for word in core_words:
             if word in self.all_synonyms:
                 expanded_keywords["同义词"].extend(self.all_synonyms[word])
+            else:
+                # 尝试通过相似词匹配找到同义词
+                for synonym_key, synonym_list in self.all_synonyms.items():
+                    if self._is_similar_word(synonym_key, word):
+                        expanded_keywords["同义词"].extend(synonym_list)
+                        server_logger.info(f"通过相似词匹配为 '{word}' 找到同义词组: {synonym_key}")
+                        break
         
         # 基于识别的业务领域生成扩展词（优先级排序）
         for domain in matched_domains:
@@ -174,24 +214,29 @@ class KeywordService:
         for word in core_words:
             if word in self.business_contexts:
                 expanded_keywords["相关词"].extend(self.business_contexts[word])
+            else:
+                # 尝试通过相似词匹配找到业务场景相关词
+                for context_key, context_list in self.business_contexts.items():
+                    if self._is_similar_word(context_key, word):
+                        expanded_keywords["相关词"].extend(context_list)
+                        server_logger.info(f"通过相似词匹配为 '{word}' 找到业务场景词组: {context_key}")
+                        break
         
         # 生成上下文词（基于亚信数字业务特点）
         if expansion_type in ["comprehensive", "contextual"]:
             expanded_keywords["上下文词"] = self.asiainfo_contexts[:8]  # 限制数量
         
-        # 去重处理（保持顺序）
+        # 去重处理并按相关性排序
         for key in expanded_keywords:
-            if key != "相关词":  # 相关词需要保持优先级顺序
-                expanded_keywords[key] = list(set(expanded_keywords[key]))
+            if key in ["同义词", "相关词"]:  # 对同义词和相关词进行智能排序
+                # 先去重
+                unique_words = list(set(expanded_keywords[key]))
+                # 按相关性排序
+                expanded_keywords[key] = self._sort_expanded_words(unique_words, original_query)
+                server_logger.info(f"{key}按相关性排序完成，共{len(expanded_keywords[key])}个词")
             else:
-                # 相关词去重但保持顺序
-                seen = set()
-                unique_related = []
-                for word in expanded_keywords[key]:
-                    if word not in seen:
-                        seen.add(word)
-                        unique_related.append(word)
-                expanded_keywords[key] = unique_related
+                # 其他类型只去重
+                expanded_keywords[key] = list(set(expanded_keywords[key]))
         
         server_logger.info(f"关键词扩展完成 | 总词数: {sum(len(v) for v in expanded_keywords.values())}")
         
@@ -252,3 +297,97 @@ class KeywordService:
 """
         
         return result 
+
+    def _calculate_word_relevance(self, word: str, original_query: str) -> int:
+        """
+        计算词汇与原始查询的相关性分数
+        
+        Args:
+            word: 待评分的词汇
+            original_query: 原始查询
+            
+        Returns:
+            相关性分数 (分数越高越相关)
+        """
+        score = 0
+        query_lower = original_query.lower()
+        word_lower = word.lower()
+        
+        # 1. 直接包含关系 (最高分)
+        if word_lower in query_lower:
+            score += 100
+        
+        # 2. 查询词在扩展词中的包含关系
+        query_words = [w.strip().lower() for w in original_query.split() if w.strip()]
+        for query_word in query_words:
+            if query_word in word_lower:
+                score += 80
+        
+        # 3. 通过同义词字典的关联度
+        for query_word in query_words:
+            for synonym_key, synonym_list in self.all_synonyms.items():
+                if query_word == synonym_key.lower():
+                    # 如果查询词是同义词组的键，该组内的词得高分
+                    if word in synonym_list:
+                        score += 60
+                elif query_word in [s.lower() for s in synonym_list]:
+                    # 如果查询词在同义词列表中，同组其他词得分
+                    if word == synonym_key or word in synonym_list:
+                        score += 50
+        
+        # 4. 通过相似词映射的关联度
+        similarity_map = {
+            "税务": ["税收", "纳税", "征税", "税法"],
+            "财务": ["财政", "资金", "金融"],
+            "制度": ["政策", "规定", "法规"],
+            "管理": ["监管", "治理", "控制"],
+            "审计": ["审核", "核查", "检查"],
+            "政策": ["制度", "规定", "办法"]
+        }
+        
+        for query_word in query_words:
+            for key, similar_words in similarity_map.items():
+                if query_word == key.lower():
+                    if word.lower() in [s.lower() for s in similar_words]:
+                        score += 40
+                elif query_word in [s.lower() for s in similar_words]:
+                    if word.lower() == key.lower():
+                        score += 40
+        
+        # 5. 通过业务场景词典的关联度
+        for query_word in query_words:
+            for context_key, context_words in self.business_contexts.items():
+                # 直接匹配业务场景键
+                if query_word == context_key.lower():
+                    if word in context_words:
+                        score += 50
+                # 通过相似词匹配业务场景键  
+                elif self._is_similar_word(context_key, query_word):
+                    if word in context_words:
+                        score += 45
+        
+        return score
+    
+    def _sort_expanded_words(self, words: List[str], original_query: str) -> List[str]:
+        """
+        根据相关性对扩展词进行排序
+        
+        Args:
+            words: 扩展词列表
+            original_query: 原始查询
+            
+        Returns:
+            排序后的扩展词列表
+        """
+        if not words:
+            return words
+        
+        # 计算每个词的相关性分数并排序
+        word_scores = [(word, self._calculate_word_relevance(word, original_query)) for word in words]
+        word_scores.sort(key=lambda x: x[1], reverse=True)
+        
+        sorted_words = [word for word, score in word_scores]
+        
+        server_logger.info(f"扩展词相关性排序: {[(w, s) for w, s in word_scores[:5]]}")  # 记录前5个的分数
+        
+        return sorted_words 
