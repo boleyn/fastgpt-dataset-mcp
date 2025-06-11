@@ -25,8 +25,12 @@ class KeywordService:
             "报告": ["报表", "汇报", "总结", "分析", "统计"],
             "审计": ["检查", "核查", "稽核", "监察", "评估"],
             "报销": ["费用", "支出", "结算", "核销", "申请"],
-            "税号": ["纳税人识别号", "税务登记号", "财务", "税务", "纳税人"],
-            "纳税人": ["税号", "纳税人识别号", "财务", "税务", "企业"]
+            # 税号相关词汇应该主要扩展为财务
+            "税号": ["财务", "税务", "纳税人识别号", "税务登记号", "纳税人"],
+            "纳税人": ["财务", "税务", "税号", "纳税人识别号", "企业"],
+            "纳税人识别号": ["财务", "税务", "税号", "纳税人", "税务登记号"],
+            "税务登记": ["财务", "税务", "税号", "纳税人", "登记证"],
+            "公司税号": ["财务", "税务", "企业管理", "合规", "申报", "登记"]
         }
         
         # 技术相关扩展词典
@@ -49,8 +53,10 @@ class KeywordService:
             "网络": ["带宽", "延迟", "稳定", "故障", "优化", "扩容"],
             "报销": ["流程", "审批", "发票", "凭证", "标准", "政策"],
             "软著": ["申请", "材料", "流程", "费用", "权利", "保护"],
+            # 税号相关的业务场景词汇
             "税号": ["财务", "税务", "登记", "申报", "合规", "管理"],
-            "纳税人": ["财务", "税务", "企业", "登记", "申报", "义务"]
+            "纳税人": ["财务", "税务", "企业", "登记", "申报", "义务"],
+            "公司税号": ["财务", "税务", "企业管理", "合规", "申报", "登记"]
         }
         
         # 业务领域识别词典 - 基于用户提供的场景分类进行更新
@@ -206,7 +212,7 @@ class KeywordService:
         # 智能识别业务领域
         matched_domains = self._identify_business_domains(original_query)
         
-        # 基础关键词处理
+        # 改进的关键词处理 - 支持复合词匹配
         core_words = [word.strip() for word in original_query.split() if word.strip()]
         
         expanded_keywords = {
@@ -217,17 +223,37 @@ class KeywordService:
             "业务领域": matched_domains
         }
         
-        # 生成同义词
+        # 生成同义词 - 改进匹配逻辑
+        synonyms_found = set()
+        
+        # 1. 首先尝试完整匹配（如"公司税号"）
+        query_lower = original_query.lower()
+        if query_lower in self.all_synonyms:
+            synonyms_found.update(self.all_synonyms[query_lower])
+            server_logger.info(f"完整匹配找到同义词: {query_lower}")
+        
+        # 2. 然后尝试分词匹配
         for word in core_words:
-            if word in self.all_synonyms:
-                expanded_keywords["同义词"].extend(self.all_synonyms[word])
+            word_lower = word.lower()
+            if word_lower in self.all_synonyms:
+                synonyms_found.update(self.all_synonyms[word_lower])
+                server_logger.info(f"分词匹配找到同义词: {word_lower}")
             else:
-                # 尝试通过相似词匹配找到同义词
-                for synonym_key, synonym_list in self.all_synonyms.items():
-                    if self._is_similar_word(synonym_key, word):
-                        expanded_keywords["同义词"].extend(synonym_list)
-                        server_logger.info(f"通过相似词匹配为 '{word}' 找到同义词组: {synonym_key}")
+                # 3. 尝试包含匹配（如"税号"包含在"公司税号"中）
+                for synonym_key in self.all_synonyms:
+                    if synonym_key in word_lower or word_lower in synonym_key:
+                        synonyms_found.update(self.all_synonyms[synonym_key])
+                        server_logger.info(f"包含匹配找到同义词: {synonym_key} <- {word_lower}")
                         break
+                
+                # 4. 尝试相似词匹配
+                for synonym_key, synonym_list in self.all_synonyms.items():
+                    if self._is_similar_word(synonym_key, word_lower):
+                        synonyms_found.update(synonym_list)
+                        server_logger.info(f"相似词匹配找到同义词: {synonym_key} <- {word_lower}")
+                        break
+        
+        expanded_keywords["同义词"] = list(synonyms_found)
         
         # 基于识别的业务领域生成扩展词（优先级排序）
         for domain in matched_domains:
@@ -363,7 +389,17 @@ class KeywordService:
             if query_word in word_lower:
                 score += 80
         
-        # 3. 通过同义词字典的关联度
+        # 3. 税号相关的特殊高权重处理
+        tax_related_queries = ["税号", "纳税人", "公司税号", "纳税人识别号", "税务登记"]
+        finance_core_words = ["财务", "税务"]
+        
+        for tax_query in tax_related_queries:
+            if tax_query in query_lower:
+                if word_lower in finance_core_words:
+                    score += 200  # 给予财务、税务最高权重
+                    server_logger.info(f"税号查询 '{tax_query}' 匹配财务核心词 '{word}', 高权重: +200")
+        
+        # 4. 通过同义词字典的关联度
         for query_word in query_words:
             for synonym_key, synonym_list in self.all_synonyms.items():
                 if query_word == synonym_key.lower():
@@ -375,7 +411,7 @@ class KeywordService:
                     if word == synonym_key or word in synonym_list:
                         score += 50
         
-        # 4. 通过相似词映射的关联度 - 增强税号、纳税人的关联
+        # 5. 通过相似词映射的关联度 - 增强税号、纳税人的关联
         similarity_map = {
             "税务": ["税收", "纳税", "征税", "税法", "税号", "纳税人", "纳税人识别号"],
             "财务": ["财政", "资金", "金融", "税号", "纳税人", "税务登记", "纳税人识别号"],
@@ -392,18 +428,18 @@ class KeywordService:
         
         for query_word in query_words:
             for key, similar_words in similarity_map.items():
-                if query_word == key.lower():
+                if query_word == key.lower() or key in query_word:
                     if word.lower() in [s.lower() for s in similar_words]:
                         score += 40
                 elif query_word in [s.lower() for s in similar_words]:
                     if word.lower() == key.lower():
                         score += 40
         
-        # 5. 通过业务场景词典的关联度
+        # 6. 通过业务场景词典的关联度
         for query_word in query_words:
             for context_key, context_words in self.business_contexts.items():
                 # 直接匹配业务场景键
-                if query_word == context_key.lower():
+                if query_word == context_key.lower() or context_key in query_word:
                     if word in context_words:
                         score += 50
                 # 通过相似词匹配业务场景键  
