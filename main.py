@@ -130,9 +130,9 @@ async def view_collection_content(
 
 @mcp.tool()
 async def multi_dataset_search(
-    dataset_ids: Annotated[str, Field(description="数据集ID的逗号分隔字符串（如：'id1,id2,id3'）")],
+    dataset_ids: Annotated[str, Field(description="数据集ID的逗号分隔字符串，最多5个（如：'id1,id2,id3'）")],
     query: Annotated[str, Field(description="搜索关键词")],
-    limit_per_dataset: Annotated[int, Field(description="每个数据集的结果数量（1-20，默认5）", ge=1, le=20)] = 5,
+    limit_per_dataset: Annotated[int, Field(description="每个数据集的结果数量（1-20，默认5）", ge=1, le=10)] = 5,
     ctx: Context = None
 ) -> str:
     """
@@ -168,6 +168,9 @@ async def multi_dataset_search(
     
     if not dataset_ids_list:
         return "❌ 请提供至少一个数据集ID"
+    
+    if len(dataset_ids_list) > 5:
+        return f"❌ 数据集数量超出限制，最多支持5个数据集，当前提供了{len(dataset_ids_list)}个"
     
     if not query.strip():
         return "❌ 请提供搜索关键词"
