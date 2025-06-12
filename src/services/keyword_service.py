@@ -127,8 +127,13 @@ class KeywordService:
             "企营赢", "EBOSS", "软著", "知识产权"
         ]
         
+        # 布谷专用扩展词典
+        self.cuckoo_synonyms = {
+            "布谷": ["通用知识", "亚信数字通用", "亚信创新通用"]
+        }
+        
         # 合并所有同义词词典
-        self.all_synonyms = {**self.finance_synonyms, **self.tech_synonyms}
+        self.all_synonyms = {**self.finance_synonyms, **self.tech_synonyms, **self.cuckoo_synonyms}
     
     def _identify_business_domains(self, query: str) -> List[str]:
         """
