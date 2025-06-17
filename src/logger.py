@@ -37,7 +37,7 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
 # 预定义的日志器
 search_logger = get_logger("search")
-server_logger = get_logger("server")
+server_logger = get_logger("server", level=logging.DEBUG)  # 设置为DEBUG级别以显示详细信息
 api_logger = get_logger("api")
 collection_logger = get_logger("collection")
 tree_logger = get_logger("tree")
