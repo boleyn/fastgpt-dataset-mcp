@@ -7,6 +7,7 @@
 - CollectionService: 文档集合服务
 - FormatUtils: 格式化工具
 - KeywordService: 关键词服务
+- PermissionService: 权限服务
 """
 
 from .tree_service import TreeService
@@ -14,11 +15,14 @@ from .search_service import SearchService
 from .collection_service import CollectionService
 from .format_utils import FormatUtils
 from .keyword_service import KeywordService
+from .permission_service import PermissionService, permission_service
 
 __all__ = [
     "TreeService",
     "SearchService", 
     "CollectionService",
     "FormatUtils",
-    "KeywordService"
+    "KeywordService",
+    "PermissionService",
+    "permission_service"
 ] 

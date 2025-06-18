@@ -7,68 +7,94 @@
 
 import os
 import asyncio
-from typing import List, Union, Annotated, Optional, Tuple
+from typing import List, Union, Annotated, Optional, Tuple, Dict
 from fastmcp import FastMCP, Context
+from fastmcp.server.dependencies import get_http_request
 from pydantic import Field
 from src.logger import server_logger
 # 导入架构组件
 from src.config import config
 from src.services import TreeService, SearchService, CollectionService, FormatUtils, KeywordService
 
+# 全局 chat_id 会话存储
+_chat_sessions: Dict[str, Dict[str, str]] = {}
+
 def get_session_data(ctx: Context) -> Tuple[Optional[str], Optional[str]]:
-    """从session获取用户ID和parent_id"""
-    if not ctx or not ctx.session:
-        return None, None
-    
+    """从全局chat_id存储获取用户ID和parent_id"""
     try:
-        connection_id = str(id(ctx.session))
-        server_logger.debug(f"获取session数据，connection_id: {connection_id}")
+        # 获取chat_id作为会话标识符
+        chat_id = get_chat_id_from_headers()
+        if not chat_id:
+            server_logger.debug("未获取到chat_id")
+            return None, None
+            
+        server_logger.debug(f"获取session数据，chat_id: {chat_id}")
         
-        # 从session中获取存储的数据
-        user_id = getattr(ctx.session, '_user_id', None)
-        parent_id = getattr(ctx.session, '_parent_id', None)
+        # 从全局存储中获取数据
+        session_data = _chat_sessions.get(chat_id, {})
+        user_id = session_data.get('user_id')
+        parent_id = session_data.get('parent_id')
         
-        server_logger.debug(f"session数据: user_id={user_id}, parent_id={parent_id}")
+        server_logger.debug(f"session数据: chat_id={chat_id}, user_id={user_id}, parent_id={parent_id}")
         return user_id, parent_id
     except Exception as e:
         server_logger.error(f"获取session数据失败: {e}")
         return None, None
 
 def set_session_data(ctx: Context, user_id: str, parent_id: str = None):
-    """设置session数据"""
-    if not ctx or not ctx.session:
-        server_logger.error("Context或session不可用")
-        return False
-    
+    """设置chat_id会话数据到全局存储"""
     try:
-        connection_id = str(id(ctx.session))
+        # 获取chat_id作为会话标识符
+        chat_id = get_chat_id_from_headers()
+        if not chat_id:
+            server_logger.error("未获取到chat_id，无法设置session数据")
+            return False
+            
         effective_parent_id = parent_id or config.default_parent_id
         
-        # 将数据存储到session对象中
-        ctx.session._user_id = user_id
-        ctx.session._parent_id = effective_parent_id
+        # 将数据存储到全局存储中
+        _chat_sessions[chat_id] = {
+            'user_id': user_id,
+            'parent_id': effective_parent_id,
+            'chat_id': chat_id
+        }
         
-        server_logger.info(f"设置session数据成功，connection_id: {connection_id}, user_id: {user_id}, parent_id: {effective_parent_id}")
+        server_logger.info(f"设置session数据成功，chat_id: {chat_id}, user_id: {user_id}, parent_id: {effective_parent_id}")
+        server_logger.debug(f"当前全局会话存储: {list(_chat_sessions.keys())}")
         return True
     except Exception as e:
         server_logger.error(f"设置session数据失败: {e}")
         return False
 
-def get_parent_id_from_request(ctx: Context) -> str:
+def get_parent_id_from_request() -> str:
     """从HTTP请求参数获取parent_id"""
     try:
-        # 尝试从HTTP请求获取parent_id参数
-        if hasattr(ctx, 'get_http_request'):
-            request = ctx.get_http_request()
-            if hasattr(request, 'query_params'):
-                parent_id = request.query_params.get('parent_id')
-                if parent_id:
-                    server_logger.debug(f"从HTTP请求获取parent_id: {parent_id}")
-                    return parent_id
+        # 使用新的方式获取HTTP请求
+        request = get_http_request()
+        if hasattr(request, 'query_params'):
+            parent_id = request.query_params.get('parent_id')
+            if parent_id:
+                server_logger.debug(f"从HTTP请求参数获取parent_id: {parent_id}")
+                return parent_id
     except Exception as e:
-        server_logger.debug(f"从HTTP请求获取parent_id失败: {e}")
+        server_logger.debug(f"从HTTP请求参数获取parent_id失败: {e}")
     
     return config.default_parent_id
+
+def get_chat_id_from_headers() -> Optional[str]:
+    """从HTTP请求头部获取chat_id"""
+    try:
+        # 使用新的方式获取HTTP请求
+        request = get_http_request()
+        if hasattr(request, 'headers'):
+            chat_id = request.headers.get('x-chat-id')
+            if chat_id:
+                server_logger.debug(f"从HTTP请求头部获取chat_id: {chat_id}")
+                return chat_id
+    except Exception as e:
+        server_logger.debug(f"从HTTP请求头部获取chat_id失败: {e}")
+    
+    return None
 
 # 创建FastMCP实例
 mcp = FastMCP("知识库管理工具")
@@ -87,20 +113,18 @@ async def set_user_context(
     ctx: Context = None
 ) -> str:
     """
-    设置用户上下文
-    
-    AI第一步调用此工具设置用户身份和根目录。
+    设置用户上下文（必须首先调用）
     """
-    if not ctx:
-        return "❌ Context不可用"
+    chat_id = get_chat_id_from_headers()
+    if not chat_id:
+        return "❌ 未获取到Chat ID，无法设置用户上下文"
     
-    connection_id = str(id(ctx.session)) if ctx.session else "无session"
-    server_logger.info(f"设置用户上下文，connection_id: {connection_id}, userid: {userid}")
+    server_logger.info(f"设置用户上下文，chat_id: {chat_id}, userid: {userid}")
     
     # 如果没有提供parent_id，尝试从HTTP请求获取
-    effective_parent_id = get_parent_id_from_request(ctx)
+    effective_parent_id = get_parent_id_from_request()
     
-    # 设置用户信息到session
+    # 设置用户信息到全局存储
     if set_session_data(ctx, userid, effective_parent_id):
         if ctx:
             await ctx.info(f"用户 {userid} 上下文已设置")
@@ -110,7 +134,8 @@ async def set_user_context(
 
 📋 用户信息:
 • 用户ID: {userid}
-• 会话ID: {connection_id}
+• Chat ID: {chat_id}
+
 
 💡 现在可以开始使用数据查询工具
 """
@@ -124,7 +149,7 @@ async def get_dataset_tree(
     ctx: Context = None
 ) -> str:
     """
-    获取知识库目录树
+    获取知识库目录树（获取有效的数据集ID）
     """
     userid, parent_id = get_session_data(ctx)
     if not userid:
@@ -137,11 +162,11 @@ async def get_dataset_tree(
     if ctx:
         await ctx.info(f"用户 {userid} 正在获取知识库目录树")
     
-    return await tree_service.get_knowledge_base_tree(parent_id, search_value, deep)
+    return await tree_service.get_knowledge_base_tree(parent_id, search_value, deep, userid)
 
 @mcp.tool()
 async def search_dataset(
-    dataset_id: Annotated[str, Field(description="数据集ID")],
+    dataset_id: Annotated[str, Field(description="数据集ID（必须来自get_dataset_tree）")],
     text: Annotated[str, Field(description="搜索关键词")],
     limit: Annotated[int, Field(description="结果数量（1-50，默认10）", ge=1, le=50)] = 10,
     ctx: Context = None
@@ -156,11 +181,11 @@ async def search_dataset(
     if ctx:
         await ctx.info(f"用户 {userid} 正在搜索数据集: {dataset_id}")
     
-    return await search_service.search_knowledge_base(dataset_id, text, limit)
+    return await search_service.search_knowledge_base(dataset_id, text, limit, userid)
 
 @mcp.tool()
 async def view_collection_content(
-    collection_id: Annotated[str, Field(description="文档ID")],
+    collection_id: Annotated[str, Field(description="文档ID（来自搜索结果）")],
     page_size: Annotated[int, Field(description="每页数据块数量（10-100，默认50）", ge=10, le=100)] = 50,
     ctx: Context = None
 ) -> str:
@@ -178,7 +203,7 @@ async def view_collection_content(
 
 @mcp.tool()
 async def multi_dataset_search(
-    dataset_ids: Annotated[str, Field(description="数据集ID的逗号分隔字符串，最多5个")],
+    dataset_ids: Annotated[str, Field(description="数据集ID列表，逗号分隔（必须来自get_dataset_tree）")],
     query: Annotated[str, Field(description="搜索关键词")],
     limit_per_dataset: Annotated[int, Field(description="每个数据集的结果数量（1-20，默认5）", ge=1, le=20)] = 5,
     ctx: Context = None
@@ -196,6 +221,16 @@ async def multi_dataset_search(
     if not dataset_ids_list:
         return "❌ 请提供至少一个数据集ID"
     
+    # 权限过滤：只保留用户有权限访问的数据集
+    from src.services import permission_service
+    allowed_datasets = permission_service.filter_allowed_datasets(userid, dataset_ids_list)
+    
+    if not allowed_datasets:
+        return "❌ 权限不足：您没有访问任何指定数据集的权限。"
+    
+    # 更新为过滤后的数据集列表
+    dataset_ids_list = allowed_datasets
+    
     if len(dataset_ids_list) > 5:
         return f"❌ 数据集数量超出限制，最多支持5个数据集"
     
@@ -205,7 +240,7 @@ async def multi_dataset_search(
     # 并行搜索多个数据集
     async def search_single_dataset(dataset_id: str) -> tuple[str, str]:
         try:
-            result = await search_service.search_knowledge_base(dataset_id, query, limit_per_dataset)
+            result = await search_service.search_knowledge_base(dataset_id, query, limit_per_dataset, userid)
             return dataset_id, result
         except Exception as e:
             return dataset_id, f"❌ 搜索失败: {str(e)}"
@@ -253,7 +288,7 @@ async def expand_search_keywords(
     ctx: Context = None
 ) -> str:
     """
-    智能关键词扩展工具
+    智能关键词扩展（搜索结果不理想时使用）
     """
     userid, _ = get_session_data(ctx)
     if not userid:
@@ -273,7 +308,7 @@ async def expand_search_keywords(
 
 @mcp.tool()
 async def explore_folder_contents(
-    folder_id: Annotated[str, Field(description="文件夹ID")],
+    folder_id: Annotated[str, Field(description="文件夹ID（必须来自get_dataset_tree）")],
     search_value: Annotated[str, Field(description="搜索关键词（可选）")] = "",
     deep: Annotated[int, Field(description="探索深度（1-10，默认6）", ge=1, le=10)] = 6,
     ctx: Context = None
@@ -288,28 +323,25 @@ async def explore_folder_contents(
     if ctx:
         await ctx.info(f"用户 {userid} 正在探索文件夹: {folder_id}")
     
-    return await tree_service.explore_folder_contents(folder_id, search_value, deep)
+    return await tree_service.explore_folder_contents(folder_id, search_value, deep, userid)
 
 
 @mcp.tool()
 async def clear_user_context(ctx: Context = None) -> str:
     """
     清理用户上下文
-    
-    清除当前会话中的用户身份信息，用于会话结束或重新设置用户身份。
     """
-    if not ctx or not ctx.session:
-        return "❌ 无可用会话"
+    chat_id = get_chat_id_from_headers()
+    if not chat_id:
+        return "❌ 未获取到Chat ID，无法清理用户上下文"
     
-    connection_id = str(id(ctx.session))
-    server_logger.info(f"清理用户上下文，connection_id: {connection_id}")
+    server_logger.info(f"清理用户上下文，chat_id: {chat_id}")
     
     try:
-        # 清除session中的用户数据
-        if hasattr(ctx.session, '_user_id'):
-            delattr(ctx.session, '_user_id')
-        if hasattr(ctx.session, '_parent_id'):
-            delattr(ctx.session, '_parent_id')
+        # 从全局存储中清除用户数据
+        if chat_id in _chat_sessions:
+            del _chat_sessions[chat_id]
+            server_logger.debug(f"已清理chat_id: {chat_id}，剩余会话: {list(_chat_sessions.keys())}")
         
         if ctx:
             await ctx.info("用户上下文已清理")
@@ -318,7 +350,7 @@ async def clear_user_context(ctx: Context = None) -> str:
 ✅ 用户上下文已清理
 
 📋 清理详情:
-• 会话ID: {connection_id}
+• Chat ID: {chat_id}
 • 用户身份: 已清除
 • 根目录信息: 已清除
 • 会话状态: 已重置
@@ -334,9 +366,10 @@ def main():
     server_logger.info("🚀 启动知识库管理MCP服务器")
     server_logger.info(f"📁 工作目录: {os.getcwd()}")
     server_logger.info("🌐 传输协议: Streamable HTTP")
-    server_logger.info("📝 会话管理: 基于MCP Session机制")
+    server_logger.info("📝 会话管理: 基于Chat ID机制")
+    server_logger.info(f"🔧 服务配置: {config.mcp_host}:{config.mcp_port}")
     
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=18008)
+    mcp.run(transport="streamable-http", host=config.mcp_host, port=config.mcp_port)
 
 if __name__ == "__main__":
     main() 

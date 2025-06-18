@@ -7,6 +7,7 @@ import asyncio
 from ..api_client import api_client
 from ..models import DatasetNode
 from ..logger import tree_logger
+from .permission_service import permission_service
 
 
 class TreeService:
@@ -15,7 +16,7 @@ class TreeService:
     def __init__(self):
         self.api_client = api_client
     
-    async def get_knowledge_base_tree(self, parent_id: str, search_value: str = "", deep: int = 4) -> str:
+    async def get_knowledge_base_tree(self, parent_id: str, search_value: str = "", deep: int = 4, userid: str = None) -> str:
         """
         获取知识库目录树并格式化为Markdown
         
@@ -23,6 +24,7 @@ class TreeService:
             parent_id: 父级目录ID
             search_value: 搜索关键词（支持空格分隔的多个关键词）
             deep: 目录深度
+            userid: 用户ID（用于权限控制）
             
         Returns:
             格式化的Markdown文本
@@ -38,6 +40,10 @@ class TreeService:
             else:
                 # 无搜索词，获取完整目录树
                 tree_structure = await self._build_tree_recursively(parent_id, "", deep, 0)
+            
+            # 应用权限过滤
+            if userid and tree_structure:
+                tree_structure = self._apply_permission_filter(tree_structure, userid)
             
             if not tree_structure:
                 return f"# 📁 知识库目录树\n\n**搜索条件:** {search_value or '无'}\n**深度:** {deep}\n\n*未找到任何匹配的内容*\n"
@@ -331,7 +337,7 @@ class TreeService:
             total += self._count_total_nodes(node_data['children'])
         return total
     
-    async def explore_folder_contents(self, folder_id: str, search_value: str = "", deep: int = 6) -> str:
+    async def explore_folder_contents(self, folder_id: str, search_value: str = "", deep: int = 6, userid: str = None) -> str:
         """
         深入探索指定文件夹的内容
         
@@ -342,6 +348,7 @@ class TreeService:
             folder_id: 文件夹ID（从get_dataset_tree结果中获取）
             search_value: 搜索关键词（可选）
             deep: 探索深度（1-10，默认6，比普通目录树更深）
+            userid: 用户ID（用于权限控制）
             
         Returns:
             格式化的文件夹内容报告
@@ -387,6 +394,10 @@ class TreeService:
             else:
                 # 无搜索词，获取完整内容
                 folder_contents = await self._build_tree_recursively(folder_id, "", deep, 0)
+            
+            # 应用权限过滤
+            if userid and folder_contents:
+                folder_contents = self._apply_permission_filter(folder_contents, userid)
             
             if not folder_contents:
                 search_info = f"搜索条件: '{search_value}'" if search_value else "无搜索条件"
@@ -561,4 +572,45 @@ class TreeService:
             
             markdown_lines.append("")
         
-        return '\n'.join(markdown_lines) 
+        return '\n'.join(markdown_lines)
+    
+    def _apply_permission_filter(self, tree_structure: List[dict], userid: str) -> List[dict]:
+        """
+        应用权限过滤，移除用户无权限访问的受限数据集
+        
+        Args:
+            tree_structure: 树结构数据
+            userid: 用户ID
+            
+        Returns:
+            过滤后的树结构
+        """
+        if not tree_structure or not userid:
+            return tree_structure
+        
+        filtered_structure = []
+        
+        for node_data in tree_structure:
+            node = node_data['node']
+            children = node_data['children']
+            
+            # 检查当前节点权限
+            if node.type == 'dataset' and node.id in permission_service.config.restricted_datasets:
+                # 是受限数据集，检查用户权限
+                if not permission_service.is_special_user(userid):
+                    tree_logger.info(f"权限过滤: 用户 {userid} 无权限访问受限数据集 {node.id[:8]}...")
+                    continue  # 跳过这个受限数据集
+            
+            # 递归过滤子节点
+            filtered_children = []
+            if children:
+                filtered_children = self._apply_permission_filter(children, userid)
+            
+            # 添加过滤后的节点
+            filtered_structure.append({
+                'node': node,
+                'depth': node_data['depth'],
+                'children': filtered_children
+            })
+        
+        return filtered_structure 

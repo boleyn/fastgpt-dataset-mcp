@@ -8,6 +8,7 @@ from ..api_client import api_client
 from ..models import SearchResult
 from ..logger import search_logger
 from .format_utils import FormatUtils
+from .permission_service import permission_service
 
 
 class SearchService:
@@ -40,7 +41,7 @@ class SearchService:
             search_logger.error(f"原始搜索失败: {str(e)}", exc_info=True)
             return []
     
-    async def search_knowledge_base(self, dataset_id: str, text: str, limit: int = 10) -> str:
+    async def search_knowledge_base(self, dataset_id: str, text: str, limit: int = 10, userid: str = None) -> str:
         """
         搜索知识库并格式化为Markdown
         
@@ -48,12 +49,18 @@ class SearchService:
             dataset_id: 数据集ID
             text: 搜索关键词
             limit: 结果数量限制
+            userid: 用户ID（用于权限控制）
             
         Returns:
             格式化的Markdown文本
         """
         try:
             search_logger.info(f"开始搜索知识库 | 数据集: {dataset_id[:8]}... | 关键词: '{text}' | 限制: {limit}")
+            
+            # 检查权限
+            if userid and not permission_service.has_dataset_access(userid, dataset_id):
+                search_logger.warning(f"用户 {userid} 无权限访问受限数据集: {dataset_id}")
+                return f"# ❌ 权限不足\n\n**数据集:** {dataset_id}\n\n您没有访问此数据集的权限。请联系管理员。"
             
             # 处理多关键词搜索
             search_results = await self._search_with_keywords(dataset_id, text, limit)

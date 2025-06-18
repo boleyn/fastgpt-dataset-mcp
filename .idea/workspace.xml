@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="84319276-0310-4a26-bc03-822cd70d0124" name="更改" comment="update：优化扩展词">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+    <list default="true" id="84319276-0310-4a26-bc03-822cd70d0124" name="更改" comment="update：优化上下文管理">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/agent_prompt.md" beforeDir="false" afterPath="$PROJECT_DIR$/agent_prompt.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/services/keyword_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/keyword_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/search_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/search_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/tree_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/tree_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,6 +141,7 @@
       <workItem from="1749627559503" duration="3169000" />
       <workItem from="1749783973436" duration="679000" />
       <workItem from="1749801986558" duration="751000" />
+      <workItem from="1750155351202" duration="4032000" />
     </task>
     <task id="LOCAL-00001" summary="初始化">
       <option name="closed" value="true" />
@@ -276,11 +279,30 @@
       <option name="project" value="LOCAL" />
       <updated>1749783997179</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="update：优化上下文管理">
+      <option name="closed" value="true" />
+      <created>1750155392940</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1750155392940</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="初始化" />
@@ -298,7 +320,8 @@
     <MESSAGE value="update：优化的多参数搜索" />
     <MESSAGE value="update：优化的扩展次工具" />
     <MESSAGE value="update：优化扩展词" />
-    <option name="LAST_COMMIT_MESSAGE" value="update：优化扩展词" />
+    <MESSAGE value="update：优化上下文管理" />
+    <option name="LAST_COMMIT_MESSAGE" value="update：优化上下文管理" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/dataset_mcp$test_tree.coverage" NAME="test_tree 覆盖结果" MODIFIED="1749094526369" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
